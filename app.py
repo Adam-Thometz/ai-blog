@@ -4,6 +4,7 @@ import shutil
 from git import Repo
 from pathlib import Path
 from secret import OPENAI_API_KEY
+from bs4 import BeautifulSoup as Soup
 
 openai.api_key = OPENAI_API_KEY
 
@@ -25,13 +26,13 @@ def update_blog(commit_message="update blog"):
     origin = repo.remote(name="origin")
     origin.push()
 
-random_text_string = "fgrehiuswdjlscoaiehfgfgre"
+# random_text_string = "fgrehiuswdjlscoaiehfgfgre"
 
-with open(PATH_TO_BLOG/"index.html", "w") as f:
-    print('writing')
-    f.write(random_text_string)
+# with open(PATH_TO_BLOG/"index.html", "w") as f:
+#     print('writing')
+#     f.write(random_text_string)
 
-update_blog()
+# update_blog()
 
 def create_new_blog(title, content, cover_image="no_image.png"):
     cover_image = Path(cover_image)
@@ -64,3 +65,31 @@ def create_new_blog(title, content, cover_image="no_image.png"):
         raise FileExistsError('File already exists, please check your name. Aborting...')
     
 path_to_new_content = create_new_blog("Test", "frsbgirwygbrewliuyfrbwiueWBIWRUEVBWIRUY")
+
+with open(PATH_TO_BLOG/"index.html") as index:
+    soup = Soup(index.read())
+
+def check_for_duplicate_links(path_to_new_content, links):
+    urls = [str(link.get('href')) for link in links]
+    content_path = str(Path(*path_to_new_content.parts[-2:]))
+    return content_path in urls
+
+def write_to_index(path_to_new_content):
+    with open(PATH_TO_BLOG/"index.html") as index:
+        soup = Soup(index.read())
+
+    links = soup.find_all('a')
+    last_link = links[-1]
+    if check_for_duplicate_links(path_to_new_content, links):
+        raise ValueError("Link already exists")
+    
+    link_to_new_blog = soup.new_tag('a', href=Path(*path_to_new_content.parts[-2:]))
+    link_to_new_blog.string = path_to_new_content.name.split('.')[0]
+
+    last_link.insert_after(link_to_new_blog)
+
+    with open(PATH_TO_BLOG/"index.html", 'w') as f:
+        f.write(str(soup.prettify(formatter='html')))
+
+write_to_index(path_to_new_content)
+update_blog()
