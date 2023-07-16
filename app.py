@@ -67,27 +67,33 @@ def create_new_blog(title, content, cover_image="no_image.png"):
 path_to_new_content = create_new_blog("Test", "frsbgirwygbrewliuyfrbwiueWBIWRUEVBWIRUY")
 
 with open(PATH_TO_BLOG/"index.html") as index:
+    print('reading index')
     soup = Soup(index.read())
 
 def check_for_duplicate_links(path_to_new_content, links):
+    print('checking for duplicate links')
     urls = [str(link.get('href')) for link in links]
     content_path = str(Path(*path_to_new_content.parts[-2:]))
     return content_path in urls
 
 def write_to_index(path_to_new_content):
+    print('writing to index')
     with open(PATH_TO_BLOG/"index.html") as index:
         soup = Soup(index.read())
 
+    print('getting links')
     links = soup.find_all('a')
     last_link = links[-1]
     if check_for_duplicate_links(path_to_new_content, links):
         raise ValueError("Link already exists")
     
+    print('creating link')
     link_to_new_blog = soup.new_tag('a', href=Path(*path_to_new_content.parts[-2:]))
     link_to_new_blog.string = path_to_new_content.name.split('.')[0]
 
     last_link.insert_after(link_to_new_blog)
 
+    print('writing link')
     with open(PATH_TO_BLOG/"index.html", 'w') as f:
         f.write(str(soup.prettify(formatter='html')))
 
