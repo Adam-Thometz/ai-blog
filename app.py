@@ -1,6 +1,7 @@
 import openai
 import os
 import shutil
+import requests
 from git import Repo
 from pathlib import Path
 from secret import OPENAI_API_KEY
@@ -64,11 +65,11 @@ def create_new_blog(title, content, cover_image="no_image.png"):
     else:
         raise FileExistsError('File already exists, please check your name. Aborting...')
     
-path_to_new_content = create_new_blog("Test", "frsbgirwygbrewliuyfrbwiueWBIWRUEVBWIRUY")
+# path_to_new_content = create_new_blog("Test", "frsbgirwygbrewliuyfrbwiueWBIWRUEVBWIRUY")
 
-with open(PATH_TO_BLOG/"index.html") as index:
-    print('reading index')
-    soup = Soup(index.read())
+# with open(PATH_TO_BLOG/"index.html") as index:
+#     print('reading index')
+#     soup = Soup(index.read())
 
 def check_for_duplicate_links(path_to_new_content, links):
     print('checking for duplicate links')
@@ -97,5 +98,58 @@ def write_to_index(path_to_new_content):
     with open(PATH_TO_BLOG/"index.html", 'w') as f:
         f.write(str(soup.prettify(formatter='html')))
 
+# write_to_index(path_to_new_content)
+# update_blog()
+
+def create_prompt(title):
+    prompt = f"""
+    Biography:
+    My name is Adam and I create videos that explain code simply.
+    Blog
+    Title: {title}
+    tags: technology, python, coding, AI machine learning
+    Summary: I walk through the creation of a blog that automatically generates content
+    Full text: """
+    return prompt
+
+title = "How to make an Automatic Blog Post generator"
+
+response = openai.Completion.create(
+    engine="text-davinci-003",
+    prompt=create_prompt(title),
+    max_tokens=3000,
+    temperature=1,
+)
+
+blog_content = response["choices"][0]["text"]
+
+def dalle2_prompt(title):
+    prompt = f"Pixel digital art showing: {title}"
+    return prompt
+
+image_prompt = dalle2_prompt(title)
+
+img_response = openai.Image.create(
+    prompt=image_prompt,
+    n=1,
+    size="1024x1024"
+)
+
+image_url = img_response["data"][0]["url"]
+
+def save_image(image_url, file_name):
+    image_res = requests.get(image_url, stream=True)
+    
+    if image_res.status_code == 200:
+        with open(file_name, 'wb') as f:
+            shutil.copyfileobj(image_res.raw, f)
+    else:
+        print('Error downloading image')
+    
+    return image_res.status_code
+
+save_image(image_url, file_name='title2.png')
+
+path_to_new_content = create_new_blog(title, blog_content, 'title2.png')
 write_to_index(path_to_new_content)
 update_blog()
